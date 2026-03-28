@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CargoX — Port Cargo Auction Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #232830;
+    --accent: #f0a500;
+    --accent2: #e05c2a;
+    --green: #22c97a;
+    --red: #f04a4a;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --dp-navy: #1a2340;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 12, 16, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo span.cargo { color: var(--text); }
+  .logo span.x { color: var(--accent); }
+
+  .logo-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    background: var(--accent);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0;
+    list-style: none;
+  }
+
+  .nav-links li a, .nav-links li button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .nav-links li a:hover, .nav-links li button:hover { color: var(--text); background: var(--surface2); }
+  .nav-links li a.active, .nav-links li button.active { color: var(--accent); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .flag-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .flag-badge:hover { border-color: var(--accent); color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .btn-primary:hover { background: #ffb822; transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.8rem;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* PAGES */
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== DASHBOARD PAGE ===== */
+  .dashboard-hero {
+    padding: 2.5rem 2rem 1.5rem;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .hero-greeting {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .hero-greeting span { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--green);
+    background: rgba(34, 201, 122, 0.08);
+    border: 1px solid rgba(34, 201, 122, 0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 2rem;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  .stat-change {
+    font-size: 0.72rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stat-change.up { color: var(--green); }
+  .stat-change.neutral { color: var(--muted); }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 2rem 2rem;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .panel-action {
+    font-size: 0.75rem;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+  }
+
+  /* AUCTION LIST */
+  .auction-filters {
+    padding: 12px 20px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    font-size: 0.72rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(240,165,0,0.06); }
+
+  .auction-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .auction-item:hover { background: var(--surface2); }
+  .auction-item:last-child { border-bottom: none; }
+
+  .cargo-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .cargo-info { min-width: 0; }
+
+  .cargo-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .cargo-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .cargo-tag {
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .tag-port { background: rgba(26,35,64,0.8); color: #7b9bdb; border: 1px solid rgba(123,155,219,0.25); }
+  .tag-country { background: rgba(34,201,122,0.08); color: var(--green); border: 1px solid rgba(34,201,122,0.2); }
+  .tag-category { background: rgba(240,165,0,0.08); color: var(--accent); border: 1px solid rgba(240,165,0,0.2); }
+
+  .cargo-date { font-size: 0.72rem; color: var(--muted); }
+
+  .auction-right { text-align: right; min-width: 110px; }
+
+  .bid-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .bid-count { font-size: 0.7rem; color: var(--muted); margin-bottom: 6px; }
+
+  .timer {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--red);
+    background: rgba(240,74,74,0.08);
+    border: 1px solid rgba(240,74,74,0.2);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .timer.safe { color: var(--green); background: rgba(34,201,122,0.08); border-color: rgba(34,201,122,0.2); }
+
+  /* RIGHT PANEL */
+  .activity-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .activity-text { font-size: 0.78rem; line-height: 1.5; }
+  .activity-text strong { font-weight: 600; color: var(--text); }
+  .activity-time { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+  /* WORLD MAP PANEL */
+  .map-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 0 2rem 2rem;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 2rem 1.5rem;
+  }
+
+  .geo-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 16px 20px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .geo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .geo-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .geo-flag { font-size: 1.4rem; margin-bottom: 6px; }
+  .geo-country { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700; margin-bottom: 3px; }
+  .geo-port { font-size: 0.68rem; color: var(--muted); margin-bottom: 8px; }
+  .geo-lots { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent); }
+
+  /* ===== AUCTION DETAIL PAGE ===== */
+  .detail-layout {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+  }
+
+  .detail-main {}
+
+  .breadcrumb {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .breadcrumb span { cursor: pointer; }
+  .breadcrumb span:hover { color: var(--accent); }
+  .breadcrumb .sep { color: var(--border); }
+
+  .detail-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+
+  .detail-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .detail-img {
+    width: 100%;
+    height: 240px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .detail-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(240,165,0,0.05) 0%, transparent 70%);
+  }
+
+  .specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+
+  .spec-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .spec-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .spec-value { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; }
+
+  .description-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .desc-title { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; margin-bottom: 10px; }
+  .desc-text { font-size: 0.82rem; color: rgba(232,234,240,0.75); line-height: 1.7; }
+
+  /* BID PANEL */
+  .bid-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: sticky;
+    top: 76px;
+  }
+
+  .bid-hero {
+    background: linear-gradient(135deg, #1a1500, #1a0f00);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bid-hero::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,165,0,0.15), transparent);
+  }
+
+  .current-bid-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 6px; }
+  .current-bid-value { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--accent); letter-spacing: -1px; margin-bottom: 6px; }
+  .bid-reserve { font-size: 0.72rem; color: var(--green); }
+
+  .bid-timer-block {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timer-label { font-size: 0.72rem; color: var(--muted); }
+
+  .timer-blocks {
+    display: flex;
+    gap: 6px;
+  }
+
+  .timer-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    text-align: center;
+    min-width: 44px;
+  }
+
+  .timer-num { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500; line-height: 1; }
+  .timer-unit { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  .bid-form { padding: 20px 24px; }
+
+  .bid-input-group { margin-bottom: 14px; }
+  .bid-input-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; display: block; }
+
+  .bid-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .bid-input-wrap:focus-within { border-color: var(--accent); }
+
+  .bid-currency {
+    padding: 0 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    height: 40px;
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+  }
+
+  .bid-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    height: 40px;
+  }
+
+  .quick-bids {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .quick-bid-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .quick-bid-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-bid {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-bid:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(240,165,0,0.25); }
+  .btn-bid:active { transform: translateY(0); }
+
+  .bid-history { padding: 0 24px 20px; }
+  .bid-history-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+
+  .bid-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .bid-row:last-child { border-bottom: none; }
+  .bid-row .bidder { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+  .bid-row .bid-val { font-weight: 600; color: var(--text); }
+  .bid-row .bid-time { color: var(--muted); font-size: 0.68rem; }
+
+  /* ESG BADGE */
+  .esg-strip {
+    background: linear-gradient(135deg, rgba(34,201,122,0.06), rgba(34,201,122,0.02));
+    border: 1px solid rgba(34,201,122,0.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .esg-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .esg-content {}
+  .esg-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--green); font-weight: 600; margin-bottom: 3px; }
+  .esg-text { font-size: 0.78rem; color: rgba(232,234,240,0.7); line-height: 1.5; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.82rem;
+    z-index: 9999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 1.2rem; }
+  .toast-msg strong { display: block; font-weight: 600; color: var(--green); }
+  .toast-msg span { color: var(--muted); font-size: 0.75rem; }
+
+  /* ===== ADMIN PAGE ===== */
+  .admin-layout {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .admin-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    margin-bottom: 1.5rem;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(240,165,0,0.02); }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .upload-text { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+  .upload-sub { font-size: 0.78rem; color: var(--muted); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.5rem; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  .form-input, .form-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+
+  /* SUSTAINABILITY SCORE */
+  .sustain-widget {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .sustain-title { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  .score-bar-wrap { margin-bottom: 12px; }
+  .score-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px; }
+  .score-bar-label .label-name { color: var(--muted); }
+  .score-bar-label .label-val { font-family: 'DM Mono', monospace; color: var(--text); }
+  .score-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--green), #6af0b0); transition: width 1s ease; }
+  .score-bar-fill.orange { background: linear-gradient(90deg, var(--accent), #ffcf60); }
+  .score-bar-fill.blue { background: linear-gradient(90deg, #4a9ef0, #8ac4ff); }
+
+  /* SECTION TITLE */
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding: 0 2rem;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE ADJUSTMENTS */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+    .geo-grid { grid-template-columns: repeat(3, 1fr); }
+    .detail-layout { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  .highlight-new {
+    animation: highlightFade 2s ease forwards;
+  }
+  @keyframes highlightFade {
+    0% { background: rgba(240,165,0,0.12); }
+    100% { background: transparent; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <span class="cargo">Cargo</span><span class="x">X</span>
+    <span class="logo-badge">BETA</span>
+  </div>
+  <ul class="nav-links">
+    <li><button onclick="showPage('dashboard')" class="active" id="nav-dashboard">Marketplace</button></li>
+    <li><button onclick="showPage('detail')" id="nav-detail">Live Auction</button></li>
+    <li><button onclick="showPage('admin')" id="nav-admin">Port Admin</button></li>
+  </ul>
+  <div class="nav-right">
+    <div class="flag-badge" onclick="cycleRegion()">
+      <span id="region-flag">🇮🇳</span>
+      <span id="region-name">India — JNPT</span>
+      <span>▾</span>
+    </div>
+    <button class="btn-ghost">Sign In</button>
+    <button class="btn-primary">Register</button>
+  </div>
+</nav>
+
+<!-- ============ PAGE: DASHBOARD ============ -->
+<div class="page active" id="page-dashboard">
+
+  <div class="dashboard-hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-greeting">Port Cargo <span>Auction</span> Marketplace</div>
+        <div class="hero-sub">Unclaimed & seized cargo from 70+ DP World terminals — bid in real time, globally.</div>
+      </div>
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        847 active lots across 14 countries
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Lots Active</div>
+      <div class="stat-value" style="color: var(--accent);">847</div>
+      <div class="stat-change up">↑ 23 new today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cleared This Month</div>
+      <div class="stat-value">2,341</div>
+      <div class="stat-change up">↑ 12% vs last month</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Port Space Freed</div>
+      <div class="stat-value" style="color: var(--green);">18,400<span style="font-size:1rem">m²</span></div>
+      <div class="stat-change up">↑ 8% efficiency gain</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">CO₂ Saved (vs Disposal)</div>
+      <div class="stat-value" style="color: var(--green);">340<span style="font-size:1rem">t</span></div>
+      <div class="stat-change up">↑ ESG impact tracked</div>
+    </div>
+  </div>
+
+  <!-- GEO STRIP -->
+  <div style="max-width:1300px;margin:0 auto;padding:0 2rem 1rem;">
+    <div class="section-label" style="padding:0;margin-bottom:10px;">Active Regions</div>
+    <div class="geo-grid" style="padding:0;">
+      <div class="geo-card" onclick="filterByCountry('India')">
+        <div class="geo-flag">🇮🇳</div>
+        <div class="geo-country">India</div>
+        <div class="geo-port">JNPT • Mundra • Chennai</div>
+        <div class="geo-lots">247 lots</div>
+      </div>
+      <div class="geo-card" onclick="filterByCountry('UAE')">
+        <div class="geo-flag">🇦🇪</div>
+        <div class="geo-country">UAE</div>
+        <div class="geo-port">Jebel Ali • Hamriyah</div>
+        <div class="geo-lots">189 lots</div>
+      </div>
+      <div class="geo-card" onclick="filterByCountry('Singapore')">
+        <div class="geo-flag">🇸🇬</div>
+        <div class="geo-country">Singapore</div>
+        <div class="geo-port">PSA • Tuas</div>
+        <div class="geo-lots">134 lots</div>
+      </div>
+      <div class="geo-card" onclick="filterByCountry('UK')">
+        <div class="geo-flag">🇬🇧</div>
+        <div class="geo-country">UK</div>
+        <div class="geo-port">Southampton • London</div>
+        <div class="geo-lots">98 lots</div>
+      </div>
+      <div class="geo-card" onclick="filterByCountry('Australia')">
+        <div class="geo-flag">🇦🇺</div>
+        <div class="geo-country">Australia</div>
+        <div class="geo-port">Brisbane • Sydney</div>
+        <div class="geo-lots">72 lots</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Live Auctions</div>
+        <button class="panel-action">View all →</button>
+      </div>
+      <div class="auction-filters">
+        <button class="filter-chip active" onclick="setFilter(this,'All')">All</button>
+        <button class="filter-chip" onclick="setFilter(this,'Electronics')">Electronics</button>
+        <button class="filter-chip" onclick="setFilter(this,'Textiles')">Textiles</button>
+        <button class="filter-chip" onclick="setFilter(this,'Machinery')">Machinery</button>
+        <button class="filter-chip" onclick="setFilter(this,'Perishables')">Perishables</button>
+        <button class="filter-chip" onclick="setFilter(this,'Chemicals')">Chemicals</button>
+        <button class="filter-chip" onclick="setFilter(this,'Vehicles')">Vehicles</button>
+      </div>
+      <div id="auction-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div>
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-header">
+          <div class="panel-title">Live Activity</div>
+          <div class="live-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;"></div>
+        </div>
+        <div id="activity-feed">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🌱 Sustainability Impact</div>
+        </div>
+        <div style="padding:16px 20px;">
+          <div class="score-bar-wrap">
+            <div class="score-bar-label"><span class="label-name">Carbon saved vs landfill</span><span class="label-val">78%</span></div>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:78%"></div></div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-label"><span class="label-name">Port congestion reduction</span><span class="label-val">64%</span></div>
+            <div class="score-bar-track"><div class="score-bar-fill orange" style="width:64%"></div></div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-label"><span class="label-name">Goods reuse rate</span><span class="label-val">91%</span></div>
+            <div class="score-bar-track"><div class="score-bar-fill blue" style="width:91%"></div></div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:10px;line-height:1.6;">
+            Every auction avoids disposal of abandoned cargo, reducing port waste and CO₂ emissions per DP World's ESG framework.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGE: DETAIL ============ -->
+<div class="page" id="page-detail">
+  <div class="detail-layout">
+    <div class="detail-main">
+      <div class="breadcrumb">
+        <span onclick="showPage('dashboard')">Marketplace</span>
+        <span class="sep">›</span>
+        <span>Electronics</span>
+        <span class="sep">›</span>
+        <span style="color:var(--text)">LOT-2024-JNP-0847</span>
+      </div>
+
+      <div class="detail-title">Samsung Electronics — Mixed Consumer Goods Pallet</div>
+
+      <div class="detail-tags">
+        <span class="cargo-tag tag-port">JNPT • Mumbai</span>
+        <span class="cargo-tag tag-country">🇮🇳 India</span>
+        <span class="cargo-tag tag-category">Electronics</span>
+        <span class="cargo-tag" style="background:rgba(240,74,74,0.08);color:var(--red);border:1px solid rgba(240,74,74,0.2);">Seized — Customs</span>
+        <span class="cargo-tag" style="background:rgba(34,201,122,0.08);color:var(--green);border:1px solid rgba(34,201,122,0.2);">🌱 ESG Verified</span>
+      </div>
+
+      <div class="detail-img">📦</div>
+
+      <div class="esg-strip">
+        <div class="esg-icon">🌿</div>
+        <div class="esg-content">
+          <div class="esg-label">Sustainability Impact</div>
+          <div class="esg-text">Auctioning this lot saves an estimated <strong style="color:var(--green)">1.2 tonnes of CO₂</strong> compared to disposal. DP World tracks and reports this against its "Our World, Our Future" ESG targets. Goods are redistributed to verified buyers, not landfilled.</div>
+        </div>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec-item">
+          <div class="spec-label">Lot ID</div>
+          <div class="spec-value" style="font-family:'DM Mono',monospace;font-size:0.8rem">LOT-2024-JNP-0847</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Weight</div>
+          <div class="spec-value">2,400 kg</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Volume</div>
+          <div class="spec-value">18 CBM</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Condition</div>
+          <div class="spec-value" style="color:var(--green)">Good</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Listed By</div>
+          <div class="spec-value">JNPT Authority</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Days at Port</div>
+          <div class="spec-value" style="color:var(--red)">127 days</div>
+        </div>
+      </div>
+
+      <div class="description-block">
+        <div class="desc-title">Lot Description</div>
+        <div class="desc-text">
+          1 × 40ft container of mixed consumer electronics seized at JNPT customs following incomplete import documentation. Contents include mobile accessories, networking equipment, and personal electronics — all in original manufacturer packaging. Buyers must be GST-registered importers. Inspection available on-site at Gate 3, JNPT Terminal 2 by appointment only. All bids are binding; full payment required within 72 hours of auction close.
+        </div>
+      </div>
+    </div>
+
+    <!-- BID PANEL -->
+    <div class="bid-panel">
+      <div class="bid-hero">
+        <div class="current-bid-label">Current Highest Bid</div>
+        <div class="current-bid-value" id="detail-bid">₹4,20,000</div>
+        <div class="bid-reserve">✓ Reserve price met</div>
+      </div>
+
+      <div class="bid-timer-block">
+        <div class="timer-label">Auction closes in</div>
+        <div class="timer-blocks">
+          <div class="timer-block">
+            <div class="timer-num" id="t-hr">08</div>
+            <div class="timer-unit">hrs</div>
+          </div>
+          <div class="timer-block">
+            <div class="timer-num" id="t-min">23</div>
+            <div class="timer-unit">min</div>
+          </div>
+          <div class="timer-block">
+            <div class="timer-num" id="t-sec">41</div>
+            <div class="timer-unit">sec</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bid-form">
+        <div class="bid-input-group">
+          <label class="bid-input-label">Your Bid Amount</label>
+          <div class="bid-input-wrap">
+            <span class="bid-currency">INR ₹</span>
+            <input class="bid-input" type="number" id="bid-amount-input" value="440000" min="430000" step="5000" />
+          </div>
+        </div>
+
+        <div class="quick-bids">
+          <button class="quick-bid-btn" onclick="setQuickBid(430000)">+₹10K</button>
+          <button class="quick-bid-btn" onclick="setQuickBid(450000)">+₹30K</button>
+          <button class="quick-bid-btn" onclick="setQuickBid(500000)">+₹80K</button>
+        </div>
+
+        <button class="btn-bid" onclick="placeBid()">🔨 Place Bid</button>
+
+        <div style="margin-top:12px;font-size:0.7rem;color:var(--muted);text-align:center;line-height:1.6;">
+          By bidding you agree to the DP World Auction Terms. Winning bidder receives customs clearance docs within 48hrs.
+        </div>
+      </div>
+
+      <div class="bid-history">
+        <div class="bid-history-title">Recent Bids</div>
+        <div id="bid-history-list">
+          <div class="bid-row"><span class="bidder">buyer_0x4f2a</span><span class="bid-val">₹4,20,000</span><span class="bid-time">2 min ago</span></div>
+          <div class="bid-row"><span class="bidder">importer_raj</span><span class="bid-val">₹4,10,000</span><span class="bid-time">9 min ago</span></div>
+          <div class="bid-row"><span class="bidder">tradehub_sg</span><span class="bid-val">₹3,95,000</span><span class="bid-time">24 min ago</span></div>
+          <div class="bid-row"><span class="bidder">buyer_0x9c3b</span><span class="bid-val">₹3,80,000</span><span class="bid-time">1 hr ago</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGE: ADMIN ============ -->
+<div class="page" id="page-admin">
+  <div class="admin-layout">
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">Port Authority — List New Lot</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:3px;">JNPT Terminal Admin Panel</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-ghost">View My Lots</button>
+        <button class="btn-primary" onclick="submitLot()">Publish Auction</button>
+      </div>
+    </div>
+
+    <div class="upload-zone" onclick="simulateUpload()">
+      <div class="upload-icon">📋</div>
+      <div class="upload-text">Upload Cargo Manifest / Customs Notice</div>
+      <div class="upload-sub">PDF, XLSX accepted · AI will auto-extract lot details</div>
+    </div>
+
+    <div class="sustain-widget">
+      <div class="sustain-title">🌱 ESG Impact Preview <span style="font-size:0.72rem;font-weight:400;color:var(--muted);margin-left:4px;">auto-calculated</span></div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><span class="label-name">Estimated CO₂ saved vs disposal</span><span class="label-val" id="co2-val">0.0t</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="co2-bar" style="width:0%"></div></div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><span class="label-name">Port space freed (m²)</span><span class="label-val" id="space-val">0 m²</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill orange" id="space-bar" style="width:0%"></div></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:8px;">Fill in lot details below to see your ESG contribution.</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Cargo Description</label>
+        <input class="form-input" type="text" placeholder="e.g. Mixed electronics, 1×40ft container" oninput="updateESG()" id="cargo-desc" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" onchange="updateESG()">
+          <option>Electronics</option>
+          <option>Textiles</option>
+          <option>Machinery</option>
+          <option>Vehicles</option>
+          <option>Chemicals</option>
+          <option>Perishables</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Weight (kg)</label>
+        <input class="form-input" type="number" placeholder="e.g. 2400" oninput="updateESG()" id="cargo-weight" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Port of Origin</label>
+        <select class="form-select">
+          <option>JNPT — Mumbai, India</option>
+          <option>Mundra — Gujarat, India</option>
+          <option>Jebel Ali — Dubai, UAE</option>
+          <option>PSA — Singapore</option>
+          <option>Southampton — UK</option>
+          <option>Brisbane — Australia</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reserve Price (USD)</label>
+        <input class="form-input" type="number" placeholder="e.g. 5000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Auction Duration</label>
+        <select class="form-select">
+          <option>24 hours</option>
+          <option>48 hours</option>
+          <option>72 hours</option>
+          <option>7 days</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason for Auction</label>
+        <select class="form-select">
+          <option>Unclaimed — Owner unreachable</option>
+          <option>Customs Seizure</option>
+          <option>Abandoned — 90+ days</option>
+          <option>Legal Order — Government</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency for Bids</label>
+        <select class="form-select">
+          <option>INR — Indian Rupee</option>
+          <option>USD — US Dollar</option>
+          <option>AED — UAE Dirham</option>
+          <option>SGD — Singapore Dollar</option>
+          <option>GBP — British Pound</option>
+          <option>AUD — Australian Dollar</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-ghost">Save Draft</button>
+      <button class="btn-primary" onclick="submitLot()">🚀 Publish Auction</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <div class="toast-msg">
+    <strong id="toast-title">Bid Placed!</strong>
+    <span id="toast-sub">You are the highest bidder</span>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────
+const lots = [
+  { id:'LOT-JNP-0847', title:'Samsung Electronics Pallet — Mixed Consumer Goods', icon:'📦', port:'JNPT', country:'🇮🇳 India', category:'Electronics', date:'Listed 3 days ago', bid:'₹4,20,000', bids:12, timer:'08:23:41', timerSafe:false },
+  { id:'LOT-JAB-1293', title:'Industrial Textile Rolls — 40ft Container', icon:'🧵', port:'Jebel Ali', country:'🇦🇪 UAE', category:'Textiles', date:'Listed 1 day ago', bid:'$8,500', bids:7, timer:'1d 14:00', timerSafe:true },
+  { id:'LOT-PSA-0491', title:'Auto Spare Parts — Unclaimed Shipment', icon:'🔧', port:'PSA Singapore', country:'🇸🇬 Singapore', category:'Machinery', date:'Listed 5 days ago', bid:'S$12,200', bids:19, timer:'03:12:05', timerSafe:false },
+  { id:'LOT-SOT-0112', title:'Luxury Watches — Seized at Customs', icon:'⌚', port:'Southampton', country:'🇬🇧 UK', category:'Electronics', date:'Listed 2 days ago', bid:'£22,000', bids:31, timer:'2d 06:00', timerSafe:true },
+  { id:'LOT-BRI-0338', title:'Agricultural Equipment — 20ft Container', icon:'🚜', port:'Brisbane', country:'🇦🇺 Australia', category:'Machinery', date:'Listed 6 days ago', bid:'A$9,800', bids:5, timer:'12:45:00', timerSafe:false },
+  { id:'LOT-CHE-0072', title:'Organic Cotton Fabric — Abandoned Shipment', icon:'🌿', port:'Chennai', country:'🇮🇳 India', category:'Textiles', date:'Listed today', bid:'₹1,85,000', bids:3, timer:'3d 00:00', timerSafe:true },
+];
+
+const activities = [
+  { color:'#f0a500', text:'<strong>buyer_0x4f2a</strong> placed ₹4,20,000 on LOT-JNP-0847', time:'2 min ago' },
+  { color:'#22c97a', text:'<strong>LOT-BRI-0338</strong> just listed by Brisbane Port Authority', time:'7 min ago' },
+  { color:'#4a9ef0', text:'<strong>tradehub_sg</strong> won LOT-PSA-0210 for S$6,400', time:'12 min ago' },
+  { color:'#f0a500', text:'<strong>importer_raj</strong> placed ₹4,10,000 on LOT-JNP-0847', time:'9 min ago' },
+  { color:'#22c97a', text:'<strong>LOT-JAB-1293</strong> reserve price met', time:'18 min ago' },
+  { color:'#f04a4a', text:'<strong>LOT-CHE-0055</strong> auction expired — relisted', time:'34 min ago' },
+];
+
+const regions = [
+  { flag:'🇮🇳', name:'India — JNPT' },
+  { flag:'🇦🇪', name:'UAE — Jebel Ali' },
+  { flag:'🇸🇬', name:'Singapore — PSA' },
+  { flag:'🇬🇧', name:'UK — Southampton' },
+  { flag:'🇦🇺', name:'Australia — Brisbane' },
+];
+
+let regionIdx = 0;
+let currentFilter = 'All';
+let timerVal = { h:8, m:23, s:41 };
+
+// ── RENDER ────────────────────────────────────────
+function renderAuctions(filter) {
+  const list = document.getElementById('auction-list');
+  const filtered = filter === 'All' ? lots : lots.filter(l => l.category === filter);
+  list.innerHTML = filtered.map(l => `
+    <div class="auction-item" onclick="showPage('detail')">
+      <div class="cargo-icon">${l.icon}</div>
+      <div class="cargo-info">
+        <div class="cargo-title">${l.title}</div>
+        <div class="cargo-meta">
+          <span class="cargo-tag tag-port">${l.port}</span>
+          <span class="cargo-tag tag-country">${l.country}</span>
+          <span class="cargo-tag tag-category">${l.category}</span>
+          <span class="cargo-date">${l.date}</span>
+        </div>
+      </div>
+      <div class="auction-right">
+        <div class="bid-amount">${l.bid}</div>
+        <div class="bid-count">${l.bids} bids</div>
+        <span class="timer ${l.timerSafe ? 'safe' : ''}">${l.timer}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderActivity() {
+  const feed = document.getElementById('activity-feed');
+  feed.innerHTML = activities.map(a => `
+    <div class="activity-item">
+      <div class="activity-dot" style="background:${a.color}"></div>
+      <div>
+        <div class="activity-text">${a.text}</div>
+        <div class="activity-time">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── NAVIGATION ────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function setFilter(el, val) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = val;
+  renderAuctions(val);
+}
+
+function filterByCountry(country) {
+  showToast('🌍', 'Region Filter', `Showing lots from ${country}`);
+}
+
+function cycleRegion() {
+  regionIdx = (regionIdx + 1) % regions.length;
+  document.getElementById('region-flag').textContent = regions[regionIdx].flag;
+  document.getElementById('region-name').textContent = regions[regionIdx].name;
+  showToast('🌐', 'Region Switched', regions[regionIdx].name);
+}
+
+// ── BID ───────────────────────────────────────────
+function placeBid() {
+  const val = parseInt(document.getElementById('bid-amount-input').value);
+  if (!val || val <= 420000) {
+    showToast('⚠️', 'Bid Too Low', 'Must exceed current bid of ₹4,20,000');
+    return;
+  }
+  const fmt = '₹' + val.toLocaleString('en-IN');
+  document.getElementById('detail-bid').textContent = fmt;
+
+  const history = document.getElementById('bid-history-list');
+  const newRow = document.createElement('div');
+  newRow.className = 'bid-row highlight-new';
+  newRow.innerHTML = `<span class="bidder">you (KK Team)</span><span class="bid-val">${fmt}</span><span class="bid-time">just now</span>`;
+  history.prepend(newRow);
+
+  showToast('🔨', 'Bid Placed!', `You are highest bidder at ${fmt}`);
+  document.getElementById('bid-amount-input').value = val + 10000;
+
+  // Update activity feed
+  activities.unshift({ color:'#f0a500', text:`<strong>KK Team</strong> placed ${fmt} on LOT-JNP-0847`, time:'just now' });
+  if(activities.length > 6) activities.pop();
+  renderActivity();
+}
+
+function setQuickBid(val) {
+  document.getElementById('bid-amount-input').value = val;
+}
+
+// ── ADMIN ─────────────────────────────────────────
+function updateESG() {
+  const weight = parseInt(document.getElementById('cargo-weight').value) || 0;
+  const co2 = (weight * 0.0005).toFixed(1);
+  const space = Math.round(weight * 0.012);
+  const co2Pct = Math.min(100, weight / 30);
+  const spacePct = Math.min(100, weight / 30);
+
+  document.getElementById('co2-val').textContent = co2 + 't';
+  document.getElementById('space-val').textContent = space + ' m²';
+  document.getElementById('co2-bar').style.width = co2Pct + '%';
+  document.getElementById('space-bar').style.width = spacePct + '%';
+}
+
+function simulateUpload() {
+  showToast('📋', 'Manifest Uploaded', 'AI extracting lot details...');
+  setTimeout(() => {
+    document.getElementById('cargo-desc').value = 'Mixed Consumer Electronics — 1×40ft Container';
+    document.getElementById('cargo-weight').value = '2400';
+    updateESG();
+    showToast('✅', 'Auto-filled!', 'AI extracted details from manifest');
+  }, 1800);
+}
+
+function submitLot() {
+  showToast('🚀', 'Auction Published!', 'Lot is now live on CargoX marketplace');
+  setTimeout(() => showPage('dashboard'), 1500);
+}
+
+// ── TOAST ─────────────────────────────────────────
+function showToast(icon, title, sub) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-sub').textContent = sub;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── TIMER ─────────────────────────────────────────
+function tickTimer() {
+  timerVal.s--;
+  if (timerVal.s < 0) { timerVal.s = 59; timerVal.m--; }
+  if (timerVal.m < 0) { timerVal.m = 59; timerVal.h--; }
+  if (timerVal.h < 0) { timerVal.h = 0; timerVal.m = 0; timerVal.s = 0; }
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('t-hr').textContent = pad(timerVal.h);
+  document.getElementById('t-min').textContent = pad(timerVal.m);
+  document.getElementById('t-sec').textContent = pad(timerVal.s);
+}
+
+// ── INIT ──────────────────────────────────────────
+renderAuctions('All');
+renderActivity();
+setInterval(tickTimer, 1000);
+setInterval(() => {
+  const names = ['buyer_0x8a1c','global_trade_co','import_pro','sg_trader','gulf_biz'];
+  const name = names[Math.floor(Math.random()*names.length)];
+  const lotId = lots[Math.floor(Math.random()*lots.length)].id;
+  activities.unshift({ color:'#f0a500', text:`<strong>${name}</strong> placed a bid on ${lotId}`, time:'just now' });
+  if(activities.length > 6) activities.pop();
+  renderActivity();
+}, 8000);
+</script>
+</body>
+</html>
